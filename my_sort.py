@@ -1,8 +1,10 @@
 """Модуль my_sort: плавная сортировка (smoothsort) Дейкстры"""
-#pylint: disable=W0123,R0914,C0415,E0401,C0415,C0104,R0915
+
+# pylint: disable=W0123,R0914,C0415,E0401,C0415,C0104,R0915
 import argparse
 import sys
 import random
+
 
 def _leonardo(n):
     nums = [1, 1]
@@ -59,6 +61,7 @@ def _build_forest(arr, less):
         _trinkle(arr, forest, len(forest) - 1, less)
     return forest
 
+
 class _TracedList(list):
     def __init__(self, data, trace):
         super().__init__(data)
@@ -75,9 +78,12 @@ class _TracedList(list):
 
 def _sort(array, reverse, key, cmp, trace):
     if cmp is None:
+
         def base_less(a, b):
             return a < b
+
     else:
+
         def base_less(a, b):
             return bool(cmp(a, b))
 
@@ -117,8 +123,15 @@ def my_sort(array, reverse=False, key=None, cmp=None):
 # ---------- CLI ----------
 
 _SAFE = {
-    "len": len, "abs": abs, "int": int, "float": float, "str": str,
-    "min": min, "max": max, "sum": sum, "sorted": sorted,
+    "len": len,
+    "abs": abs,
+    "int": int,
+    "float": float,
+    "str": str,
+    "min": min,
+    "max": max,
+    "sum": sum,
+    "sorted": sorted,
 }
 _KEYS = {**_SAFE, "lower": str.lower, "upper": str.upper}
 
@@ -156,6 +169,7 @@ def _convert(values, kind, key=None):
         return list(values)
     raise SystemExit(f"тип {kind} несовместим с данными или переданным ключом (-k)")
 
+
 class _Synth:
     """Неблокирующий синтезатор: тоны смешиваются в callback потока звука."""
 
@@ -168,8 +182,8 @@ class _Synth:
         self._cache = {}
         self._active = []  # [массив тона, позиция]
         self._stream = sd_module.OutputStream(
-            samplerate=self.RATE, channels=1, dtype="float32",
-            callback=self._callback)
+            samplerate=self.RATE, channels=1, dtype="float32", callback=self._callback
+        )
         self._stream.start()
 
     def _tone(self, level):
@@ -197,8 +211,8 @@ class _Synth:
         outdata.fill(0)
         for voice in self._active[:]:
             tone, pos = voice
-            chunk = tone[pos:pos + frames]
-            outdata[:len(chunk), 0] += chunk
+            chunk = tone[pos : pos + frames]
+            outdata[: len(chunk), 0] += chunk
             voice[1] += frames
             if voice[1] >= len(tone):
                 self._active.remove(voice)
@@ -240,6 +254,7 @@ def _visualize(trace, final, delay, sound=False):
         y_lim_top = max(0, raw_max) + pad
 
     val_span = raw_max - raw_min if raw_max != raw_min else 1
+
     def to_sound_level(val):
         if isinstance(val, (int, float)):
             return int((val - raw_min) / val_span * (n - 1))
@@ -306,11 +321,13 @@ def _visualize(trace, final, delay, sound=False):
 
         return bars
 
-    _anim = FuncAnimation(fig, update, frames=len(shots) + n,
-                          interval=interval, repeat=False)
+    _anim = FuncAnimation(
+        fig, update, frames=len(shots) + n, interval=interval, repeat=False
+    )
     plt.show()
     if synth:
         synth.close()
+
 
 def _read_values(args, parser):
     """Возвращает список строк-элементов из выбранного источника."""
@@ -318,8 +335,7 @@ def _read_values(args, parser):
         if args.random < 1:
             parser.error("--random: размер должен быть не меньше 1")
         rng = random.Random(args.seed)
-        return [str(rng.randint(args.min, args.max))
-                for _ in range(args.random)]
+        return [str(rng.randint(args.min, args.max)) for _ in range(args.random)]
     if args.input:
         try:
             with open(args.input, encoding="utf-8") as file:
@@ -338,35 +354,67 @@ def main(argv=None):
     CLI для сортировки элементов (по умолчанию из stdin) с визуализацией.
     """
     parser = argparse.ArgumentParser(
-        prog="my_sort", description="Плавная сортировка (smoothsort)")
-    parser.add_argument("values", nargs="*",
-                        help="элементы (если не заданы, читаются из stdin)")
-    parser.add_argument("-r", "--reverse", action="store_true",
-                        help="сортировать по невозрастанию")
-    parser.add_argument("-k", "--key",
-                        help="len, abs, lower, ... или 'lambda x: x[1]'")
-    parser.add_argument("-c", "--cmp",
-                        help="'lambda a, b: a < b' (True, если a меньше b)")
-    parser.add_argument("-t", "--type", choices=["auto", "int", "float", "str"],
-                        default="auto", help="тип элементов (по умолчанию auto)")
-    parser.add_argument("-i", "--input", metavar="FILE",
-                        help="читать элементы из файла (через пробелы/переводы строк)")
-    parser.add_argument("-o", "--output", metavar="FILE",
-                        help="записать результат в файл (один элемент на строку)")
-    parser.add_argument("--random", type=int, metavar="N",
-                        help="сгенерировать случайный список из N целых чисел")
-    parser.add_argument("--min", type=int, default=0,
-                        help="минимум для --random (по умолчанию 0)")
-    parser.add_argument("--max", type=int, default=100,
-                        help="максимум для --random (по умолчанию 100)")
-    parser.add_argument("--seed", type=int,
-                        help="seed генератора для воспроизводимости")
-    parser.add_argument("-v", "--visualize", action="store_true",
-                        help="показать анимацию сортировки (matplotlib)")
-    parser.add_argument("-s", "--sound", action="store_true",
-                        help="звуковое сопровождение визуализации")
-    parser.add_argument("--delay", type=int, default=200,
-                        help="задержка между кадрами, мс (по умолчанию 200)")
+        prog="my_sort", description="Плавная сортировка (smoothsort)"
+    )
+    parser.add_argument(
+        "values", nargs="*", help="элементы (если не заданы, читаются из stdin)"
+    )
+    parser.add_argument(
+        "-r", "--reverse", action="store_true", help="сортировать по невозрастанию"
+    )
+    parser.add_argument("-k", "--key", help="len, abs, lower, ... или 'lambda x: x[1]'")
+    parser.add_argument(
+        "-c", "--cmp", help="'lambda a, b: a < b' (True, если a меньше b)"
+    )
+    parser.add_argument(
+        "-t",
+        "--type",
+        choices=["auto", "int", "float", "str"],
+        default="auto",
+        help="тип элементов (по умолчанию auto)",
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        metavar="FILE",
+        help="читать элементы из файла (через пробелы/переводы строк)",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        metavar="FILE",
+        help="записать результат в файл (один элемент на строку)",
+    )
+    parser.add_argument(
+        "--random",
+        type=int,
+        metavar="N",
+        help="сгенерировать случайный список из N целых чисел",
+    )
+    parser.add_argument(
+        "--min", type=int, default=0, help="минимум для --random (по умолчанию 0)"
+    )
+    parser.add_argument(
+        "--max", type=int, default=100, help="максимум для --random (по умолчанию 100)"
+    )
+    parser.add_argument(
+        "--seed", type=int, help="seed генератора для воспроизводимости"
+    )
+    parser.add_argument(
+        "-v",
+        "--visualize",
+        action="store_true",
+        help="показать анимацию сортировки (matplotlib)",
+    )
+    parser.add_argument(
+        "-s", "--sound", action="store_true", help="звуковое сопровождение визуализации"
+    )
+    parser.add_argument(
+        "--delay",
+        type=int,
+        default=200,
+        help="задержка между кадрами, мс (по умолчанию 200)",
+    )
     args = parser.parse_args(argv)
 
     raw = _read_values(args, parser)
